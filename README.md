@@ -103,6 +103,56 @@ This project uses Supabase as its backend-as-a-service, providing:
 - **Edge Functions**: Server-side logic and API endpoints
 - **Storage**: File uploads and management
 
+## Architecture Overview
+
+This portfolio management application has been migrated from Supabase to Vercel's infrastructure for improved security and simplicity.
+
+### Technology Stack
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Authentication**: Secure session-based auth with Vercel KV
+- **Data Storage**: Vercel Blob Storage (JSON files)
+- **API**: RESTful endpoints with authentication middleware
+- **Deployment**: Vercel platform
+
+### Security Features
+- ✅ Secure password hashing (SHA-256 + salt)
+- ✅ Session-based authentication with HTTP-only cookies
+- ✅ All API endpoints require authentication
+- ✅ No sensitive data exposed in frontend code
+- ✅ Environment variables properly managed
+
+## Quick Start
+
+### 1. Setup Environment
+```bash
+# Install dependencies
+npm install
+
+# Generate password hash
+node scripts/generate-password-hash.js "YourSecurePassword123"
+
+# Copy environment template
+cp .env.example .env.local
+# Edit .env.local with your values
+```
+
+### 2. Configure Vercel Services
+1. Set up Vercel Blob Storage
+2. Set up Vercel KV Storage  
+3. Add environment variables to Vercel dashboard
+
+### 3. Deploy
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+```
+
+For detailed setup instructions, see [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md).
+
 ## Project Portability & Migration
 
 ### Running Without Lovable

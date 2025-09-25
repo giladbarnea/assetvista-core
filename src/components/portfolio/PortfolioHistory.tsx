@@ -7,65 +7,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Download, Calendar, Trash2 } from 'lucide-react';
 import { PortfolioSnapshot } from '@/types/portfolio';
 import { formatCurrency } from '@/lib/portfolio-utils';
-import { supabase } from '@/integrations/supabase/client';
+import { usePortfolioSnapshotsApi } from '@/hooks/usePortfolioSnapshotsApi';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx-js-style';
 
 export function PortfolioHistory() {
-  const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { snapshots, isLoading, deleteSnapshot: deleteSnapshotApi, refetch } = usePortfolioSnapshotsApi();
   const { toast } = useToast();
-
-  useEffect(() => {
-    loadSnapshots();
-  }, []);
-
-  const loadSnapshots = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('portfolio_snapshots')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setSnapshots((data || []).map(row => ({
-        ...row,
-        assets: row.assets as any[],
-        fx_rates: row.fx_rates as any
-      })));
-    } catch (error) {
-      console.error('Error loading snapshots:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load portfolio history",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
   const deleteSnapshot = async (snapshot: PortfolioSnapshot) => {
-    try {
-      const { error } = await supabase
-        .from('portfolio_snapshots')
-        .delete()
-        .eq('id', snapshot.id);
-
-      if (error) throw error;
-
-      setSnapshots(prev => prev.filter(s => s.id !== snapshot.id));
-      
+    const success = await deleteSnapshotApi(snapshot.id);
+    if (success) {
       toast({
         title: "Deleted",
         description: `Portfolio snapshot "${snapshot.name}" has been deleted`,
-      });
-    } catch (error) {
-      console.error('Error deleting snapshot:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete portfolio snapshot",
-        variant: "destructive",
       });
     }
   };

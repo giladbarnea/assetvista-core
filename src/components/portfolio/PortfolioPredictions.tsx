@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
-import { useAssetLiquidationSettings } from '@/hooks/useAssetLiquidationSettings';
+import { useAssetLiquidationSettingsApi } from '@/hooks/useAssetLiquidationSettingsApi';
 import { useAssetLookup } from '@/hooks/useAssetLookup';
 
 interface PredictionSettings {
@@ -42,7 +42,22 @@ interface PortfolioPredictionsProps {
 }
 
 export function PortfolioPredictions({ assets, viewCurrency, fxRates }: PortfolioPredictionsProps) {
-  const { getLiquidationYear, saveLiquidationYear, isLoading: liquidationLoading } = useAssetLiquidationSettings();
+  const { settings: liquidationSettings, createSetting, updateSetting, isLoading: liquidationLoading } = useAssetLiquidationSettingsApi();
+  
+  // Helper functions to maintain compatibility
+  const getLiquidationYear = (assetName: string) => {
+    const setting = liquidationSettings.find(s => s.asset_name === assetName);
+    return setting ? setting.liquidation_year : null;
+  };
+  
+  const saveLiquidationYear = async (assetName: string, year: string) => {
+    const existingSetting = liquidationSettings.find(s => s.asset_name === assetName);
+    if (existingSetting) {
+      await updateSetting({ ...existingSetting, liquidation_year: year });
+    } else {
+      await createSetting({ asset_name: assetName, liquidation_year: year });
+    }
+  };
   const { getAssetGroupsByClass } = useAssetLookup(assets);
   
   const currentYear = new Date().getFullYear();

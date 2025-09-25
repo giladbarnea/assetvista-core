@@ -2,15 +2,15 @@ import { useState, useMemo } from 'react';
 import { Asset, ViewCurrency, FXRates, FilterCriteria, AssetClass } from '@/types/portfolio';
 import { calculateAssetValue, filterAssetsByFilters } from '@/lib/portfolio-utils';
 
-import { useAssets } from '@/hooks/useAssets';
-import { useFXRates } from '@/hooks/useFXRates';
+import { useAssetsApi } from '@/hooks/useAssetsApi';
+import { useFXRatesApi } from '@/hooks/useFXRatesApi';
 import { PortfolioHeader } from './PortfolioHeader';
 import { AssetTable } from './AssetTable';
 import { AssetForm } from './AssetForm';
 import { PortfolioSummary } from './PortfolioSummary';
 import { SavePortfolioDialog } from './SavePortfolioDialog';
 import { PortfolioHistory } from './PortfolioHistory';
-import { usePortfolioSnapshots } from '@/hooks/usePortfolioSnapshots';
+import { usePortfolioSnapshotsApi } from '@/hooks/usePortfolioSnapshotsApi';
 import { PortfolioFilters } from './PortfolioFilters';
 import { PortfolioGrouping, GroupByField } from './PortfolioGrouping';
 import { PortfolioPredictions } from './PortfolioPredictions';
@@ -19,15 +19,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
 export function PortfolioDashboard() {
-  const { assets, isLoading, addAsset, updateAsset, deleteAsset, getAssetNameCount } = useAssets();
+  const { assets, isLoading, createAsset, updateAsset, deleteAsset } = useAssetsApi();
   const [viewCurrency, setViewCurrency] = useState<ViewCurrency>('USD');
   
   const {
     fxRates,
     lastUpdated,
     isLoading: fxLoading,
-    updateManualRate,
-  } = useFXRates();
+    updateFXRates,
+  } = useFXRatesApi();
   const [filters, setFilters] = useState<FilterCriteria>({});
   const [groupByFields, setGroupByFields] = useState<GroupByField[]>([]);
   const [groupSortBy, setGroupSortBy] = useState<'value' | 'alphabetical'>('value');
@@ -36,9 +36,12 @@ export function PortfolioDashboard() {
   const [assetFormMode, setAssetFormMode] = useState<'NEW' | 'EXISTING_HOLDING' | 'DUPLICATE' | 'EDIT'>('NEW');
   
   const { toast } = useToast();
-  const { saveSnapshot, isLoading: isSaving } = usePortfolioSnapshots();
+  const { createSnapshot, isLoading: isSaving } = usePortfolioSnapshotsApi();
   
-  console.log('saveSnapshot function:', saveSnapshot); // Debug log
+  // Helper function to count asset names (for duplicate detection)
+  const getAssetNameCount = (name: string) => {
+    return assets.filter(asset => asset.name === name).length;
+  };
 
   // Filter assets based on current filters
   const filteredAssets = useMemo(() => {
@@ -137,7 +140,7 @@ export function PortfolioDashboard() {
         await updateAsset(asset);
       } else {
         // Add new asset (this handles duplicates and truly new assets)
-        await addAsset(asset);
+        await createAsset(asset);
       }
       setEditingAsset(undefined);
       setIsAssetFormOpen(false);
@@ -184,8 +187,12 @@ export function PortfolioDashboard() {
   };
 
   const handleSavePortfolio = async (name: string, description: string) => {
-    console.log('handleSavePortfolio called with:', { name, description, saveSnapshot }); // Debug log
-    await saveSnapshot(name, description, assets, fxRates);
+    await createSnapshot({
+      name,
+      description,
+      assets,
+      fx_rates: fxRates,
+    });
   };
 
   return (
@@ -204,7 +211,25 @@ export function PortfolioDashboard() {
             fxRates={fxRates}
             lastUpdated={lastUpdated}
             onRatesChange={() => {}} // Legacy prop, not used anymore
-            onManualRateChange={updateManualRate}
+            onManualRateChange={async (currency: string, rate: number) => {
+              // Convert single rate update to full rates update
+              const updatedRates = { ...fxRates };
+              if (updatedRates[currency]) {
+                updatedRates[currency] = {
+                  ...updatedRates[currency],
+                  to_ILS: rate,
+                  last_updated: new Date().toISOString(),
+                };
+                await updateFXRates(Object.values(updatedRates).map(r => ({
+                  currency: Object.keys(updatedRates).find(k => updatedRates[k] === r)!,
+                  to_usd_rate: r.to_USD,
+                  to_ils_rate: r.to_ILS,
+                  last_updated: r.last_updated,
+                  source: 'manual',
+                  is_manual_override: true,
+                })));
+              }
+            }}
           />
 
         <Tabs defaultValue="assets" className="space-y-6">

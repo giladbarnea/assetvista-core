@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "APP_PASSWORD_HASH": "@app-password-hash",
+    "PASSWORD_SALT": "@password-salt",
+    "BLOB_READ_WRITE_TOKEN": "@blob-read-write-token",
+    "KV_REST_API_URL": "@kv-rest-api-url",
+    "KV_REST_API_TOKEN": "@kv-rest-api-token"
+  }
+}

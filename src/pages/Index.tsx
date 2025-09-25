@@ -1,11 +1,11 @@
-import { PasswordProtection } from '@/components/auth/PasswordProtection';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PortfolioDashboard } from '@/components/portfolio/PortfolioDashboard';
 
 const Index = () => {
   return (
-    <PasswordProtection>
+    <AuthGuard>
       <PortfolioDashboard />
-    </PasswordProtection>
+    </AuthGuard>
   );
 };
 
